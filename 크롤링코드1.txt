@@ -1,0 +1,35 @@
+import requests
+import json
+import pandas as pd
+
+url = "https://stats.oecd.org/SDMX-JSON/data/KEI/LR+LRHUTTTT.AUS+AUT+BEL+CAN+CHL+COL+CRI+CZE+DNK+EST+FIN+FRA+DEU+GRC+HUN+ISL+IRL+ISR+ITA+JPN+KOR+LTU+LVA+LUX+MEX+NLD+NZL+NOR+POL+PRT+SVK+SVN+ESP+SWE+CHE+TUR+GBR+USA+NMEC+ARG+BRA+CHN+IND+IDN+RUS+SAU+ZAF.ST.A+Q+M/all?startTime=2021&endTime=2024&dimensionAtObservation=allDimensions"
+
+# Send request to the OECD API
+response = requests.get(url)
+data = response.json()
+
+# Save data to a JSON file
+with open('oecd_data.json', 'w') as f:
+    json.dump(data, f)
+
+# Load JSON data into a pandas DataFrame
+def parse_oecd_data(data):
+    obs = data['dataSets'][0]['observations']
+    index = data['structure']['dimensions']['observation']
+
+    # Create a mapping of dimension indices to actual values
+    dimensions = [dim['values'] for dim in index]
+    columns = [dim['name'] for dim in index] + ['Value']
+
+    records = []
+    for key, value in obs.items():
+        indices = key.split(':')
+        record = [dimensions[i][int(idx)]['name'] for i, idx in enumerate(indices)]
+        record.append(value[0])
+        records.append(record)
+
+    df = pd.DataFrame(records, columns=columns)
+    return df
+
+# Parse the JSON data to DataFrame
+df = parse_oecd_data(data)

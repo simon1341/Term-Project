@@ -1,0 +1,34 @@
+import requests
+import json
+import pandas as pd
+
+new_url = "https://stats.oecd.org/SDMX-JSON/data/SNA_TABLE2/AUS+AUT+BEL+CAN+CHL+COL+CRI+CZE+DNK+EST+FIN+FRA+DEU+GRC+HUN+ISL+IRL+ISR+ITA+JPN+KOR+LVA+LTU+LUX+MEX+NLD+NZL+NOR+POL+PRT+SVK+SVN+ESP+SWE+CHE+TUR+GBR+USA+EA19+EU27_2020+NMEC+CHN+IND+IDN+RUS+SAU+ZAF+FRME+DEW.B5_NS1.HVPVOB/all?startTime=2003&endTime=2023&dimensionAtObservation=allDimensions"
+
+# Send request to the OECD API
+response = requests.get(new_url)
+new_data = response.json()
+
+# Save new data to a JSON file
+with open('new_oecd_data.json', 'w') as f:
+    json.dump(new_data, f)
+
+# Load JSON data into a pandas DataFrame
+def parse_new_oecd_data(new_data):
+    obs = new_data['dataSets'][0]['observations']
+    index = new_data['structure']['dimensions']['observation']
+
+    # Create a mapping of dimension indices to actual values
+    dimensions = [dim['values'] for dim in index]
+    columns = [dim['name'] for dim in index] + ['Value']
+
+    records = []
+    for key, value in obs.items():
+        indices = key.split(':')
+        record = [dimensions[i][int(idx)]['name'] for i, idx in enumerate(indices)]
+        record.append(value[0])
+        records.append(record)
+
+    df = pd.DataFrame(records, columns=columns)
+    return df
+new_df = parse_new_oecd_data(new_data)
+new_df
